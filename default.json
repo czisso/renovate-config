@@ -1,0 +1,123 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommitTypeAll(chore)"],
+  "timezone": "Europe/London",
+  "labels": ["dependencies"],
+
+  "baseBranches": ["dev"],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 0,
+  "rebaseWhen": "conflicted",
+  "postUpdateOptions": ["pnpmDedupe"],
+  "minimumReleaseAge": "3 days",
+
+  "description": [
+    "baseBranches is `dev`, NOT the repo default. Every repo here defaults to `main`, and `main` auto-deploys to Vercel — without this, an automerged dependency bump would ship straight to production without ever passing through dev.",
+    "No top-level `schedule`: the GitHub Actions workflow cron is the only scheduler. A second one here would silently no-op any manual workflow_dispatch run that fell outside the window.",
+    "Minor+patch land themselves once CI is green; majors wait for you to tick them on the Dependency Dashboard, so they never arrive as surprise PRs.",
+    "minimumReleaseAge holds every update back for 3 days. This is a supply-chain guard: the highest-risk window for a compromised or yanked npm release is the first hours after publication, and nothing here is urgent enough to need a package the day it ships. It also keeps Renovate compatible with pnpm 11, which enforces its own 24h floor and rejects newer entries with ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION — including under --frozen-lockfile, so a too-fresh lockfile fails CI outright. 3 days sits comfortably clear of that 24h line. Security updates are exempt automatically.",
+    "platformAutomerge is deliberately FALSE. Handing the merge to GitHub sounds better — a PR merges the moment checks pass instead of waiting for the next Renovate run — but GitHub's auto-merge respects required reviews and will not bypass them for anyone. On autamoshub, whose dev branch requires an approving review that Renovate cannot give itself, that meant its dependency PRs queued forever and had to be merged by hand every cycle.",
+    "With this false, Renovate merges during its own run using RENOVATE_TOKEN instead. That token is czisso's classic PAT, czisso is a repo admin, and autamoshub's branch protection has enforce_admins:false — so the merge goes through while the review requirement stays in place for humans. Branch protection is left intact and meaningful rather than deleted to satisfy a bot.",
+    "IMPORTANT: GitHub's native auto-merge is also a PAID feature for private repos. It works on Autamos-LLC (Team plan) but NOT on the czisso personal repos or HENSOLDT-Marcom (Free) — the API accepts allow_auto_merge:true there and silently ignores it. So those three were already falling back to Renovate's own merge; this setting simply makes all four behave identically. The workflow cron is therefore the automerge latency everywhere, which is why it runs daily rather than twice weekly."
+  ],
+  "automergeStrategy": "squash",
+  "platformAutomerge": false,
+
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": ["* 0-5 1 * *"],
+    "automerge": true
+  },
+
+  "packageRules": [
+    {
+      "description": "Grouped minor+patch npm updates, automerged after CI passes.",
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "groupName": "npm (minor & patch)",
+      "automerge": true
+    },
+    {
+      "description": "Majors never automerge and do not open a PR until approved on the Dependency Dashboard.",
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "dependencyDashboardApproval": true,
+      "labels": ["dependencies", "major"]
+    },
+    {
+      "description": "GitHub Actions, grouped and automerged.",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["minor", "patch", "digest"],
+      "groupName": "github-actions",
+      "automerge": true
+    },
+    {
+      "description": "Dev container CLI pins (the ARG values in .devcontainer/Dockerfile), grouped and automerged. Merging one of these means the container image is stale until you rebuild — the postAttach check in devcontainer.json warns you.",
+      "matchManagers": ["custom.regex"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "dev container CLIs",
+      "automerge": true
+    },
+    {
+      "description": "Playwright's npm packages and the Dockerfile ARG must move together — the browser builds are tied to the package version.",
+      "matchPackageNames": ["playwright", "@playwright/test"],
+      "groupName": "playwright"
+    },
+    {
+      "description": "Node is capped by Vercel's runtime, which offers only 24.x/22.x/20.x. Do not let Renovate move the base image or @types/node past it. Raise this (and NODE_MAJOR in ~/scripts/versions.env) only once `check-app-health.sh --upstream` reports Vercel supports the next major.",
+      "matchPackageNames": [
+        "@types/node",
+        "mcr.microsoft.com/devcontainers/javascript-node",
+        "node"
+      ],
+      "allowedVersions": "<25"
+    },
+    {
+      "description": "The Claude Code CLI self-updates at runtime, so the image pin is only a floor. Monthly, to avoid a PR every few days.",
+      "matchPackageNames": ["@anthropic-ai/claude-code"],
+      "schedule": ["* 0-5 1 * *"],
+      "automerge": true
+    }
+  ],
+
+  "customManagers": [
+    {
+      "description": "Supabase CLI pinned as an ARG in the dev container Dockerfile.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.devcontainer/Dockerfile$/"],
+      "matchStrings": ["ARG SUPABASE_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "supabase/cli",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "description": "Doppler CLI pinned as an ARG. Its release tags carry no `v` prefix.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.devcontainer/Dockerfile$/"],
+      "matchStrings": ["ARG DOPPLER_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "DopplerHQ/cli",
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.devcontainer/Dockerfile$/"],
+      "matchStrings": ["ARG PLAYWRIGHT_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "playwright",
+      "datasourceTemplate": "npm"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.devcontainer/Dockerfile$/"],
+      "matchStrings": ["ARG GRAPHIFYY_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "graphifyy",
+      "datasourceTemplate": "pypi"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": ["/^\\.devcontainer/Dockerfile$/"],
+      "matchStrings": ["ARG CLAUDE_CODE_VERSION=(?<currentValue>\\S+)"],
+      "depNameTemplate": "@anthropic-ai/claude-code",
+      "datasourceTemplate": "npm"
+    }
+  ]
+}
