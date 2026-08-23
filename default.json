@@ -74,8 +74,13 @@
     },
     {
       "description": "TypeScript is capped below 7 because typescript-eslint cannot parse with it. TS 7 is the Go rewrite and ships no compiler API yet, so typescript-eslint (peer `>=4.8.4 <6.1.0` as of 8.67.0) is structurally incompatible — upstream closed both support requests as not_planned, tracking issue typescript-eslint#10940. Taking v7 does not break one rule, it breaks the parser for the whole lint config. The cap also makes Renovate offer TS 6.0.3 (stable since 2026-04-16, the last JS-based compiler, keeps the API and sits inside typescript-eslint's range) instead of skipping straight to 7 — TS 6 is the designated deprecation bridge to 7, so it is progress rather than a detour. Lift this only once typescript-eslint's peer range admits 7: check the range itself, not just whether a new TS release exists.",
-      "matchPackageNames": ["typescript"],
+      "matchDepNames": ["typescript"],
       "allowedVersions": "<7"
+    },
+    {
+      "description": "The TypeScript 7 compiler, installed alongside TS 6 as `\"@typescript/native\": \"npm:typescript@^7.0.2\"`. It must be allowed to track 7.x. Note why the cap above uses matchDepNames and not matchPackageNames: an aliased dependency resolves to the package `typescript`, so a matchPackageNames rule would catch this entry too and silently pin the TS 7 compiler below 7 — freezing the very thing it is there to provide. matchDepNames matches the package.json key instead, so the cap applies only to the real `typescript` entry.",
+      "matchDepNames": ["@typescript/native"],
+      "allowedVersions": ">=7"
     },
     {
       "description": "The Claude Code CLI self-updates at runtime, so the image pin is only a floor. Monthly, to avoid a PR every few days.",
