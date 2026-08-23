@@ -78,6 +78,11 @@
       "allowedVersions": "<7"
     },
     {
+      "description": "@babel/core is capped below 8 because the entry Renovate sees is not a dependency — it is the BOUNDED SECURITY FLOOR in pnpm-workspace.yaml (`'@babel/core': '>=7.29.1 <8'`). Nothing here depends on Babel directly; it arrives transitively via @sentry/nextjs, eslint-config-next and styled-jsx, all of which want Babel 7. The `<8` bound is the fix for a real incident: a bare `>=7.29.6` floor silently resolved to 8.0.1 on bookingsystem and brand-dashboard while lint, types, build and tests all passed, and the jump appeared nowhere except the lockfile. Letting Renovate raise this override would undo exactly the protection that bought. Raise it only when the direct consumers above actually require Babel 8, and keep the range bounded when you do.",
+      "matchDepNames": ["@babel/core"],
+      "allowedVersions": "<8"
+    },
+    {
       "description": "The TypeScript 7 compiler, installed alongside TS 6 as `\"@typescript/native\": \"npm:typescript@^7.0.2\"`. It must be allowed to track 7.x. Note why the cap above uses matchDepNames and not matchPackageNames: an aliased dependency resolves to the package `typescript`, so a matchPackageNames rule would catch this entry too and silently pin the TS 7 compiler below 7 — freezing the very thing it is there to provide. matchDepNames matches the package.json key instead, so the cap applies only to the real `typescript` entry.",
       "matchDepNames": ["@typescript/native"],
       "allowedVersions": ">=7"
