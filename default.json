@@ -83,6 +83,11 @@
       "allowedVersions": "<8"
     },
     {
+      "description": "Do not let Renovate edit pnpm-workspace.yaml. Every entry in its `overrides` block is a deliberate manual pin: the bounded CVE security floors (lodash, @babel/core, fast-uri, picomatch) and the exact type pins aligned to react (@types/react, @types/react-dom). None should ever be auto-bumped. Renovate rewrites the WHOLE file to change one line, and its YAML writer drops the leading comment block — the rationale header documenting why each floor is bounded and the real @babel/core 8.0.1 incident that made them necessary (a bare `>=` floor silently crossed a major on two repos with lint, types, build and tests all green). Losing that comment is losing the reason the rule exists. This just happened on czisso/bookingsystem#22. These entries move by hand, consciously, on the rare occasion they need to.",
+      "matchFileNames": ["pnpm-workspace.yaml"],
+      "enabled": false
+    },
+    {
       "description": "The TypeScript 7 compiler, installed alongside TS 6 as `\"@typescript/native\": \"npm:typescript@^7.0.2\"`. It must be allowed to track 7.x. Note why the cap above uses matchDepNames and not matchPackageNames: an aliased dependency resolves to the package `typescript`, so a matchPackageNames rule would catch this entry too and silently pin the TS 7 compiler below 7 — freezing the very thing it is there to provide. matchDepNames matches the package.json key instead, so the cap applies only to the real `typescript` entry.",
       "matchDepNames": ["@typescript/native"],
       "allowedVersions": ">=7"
