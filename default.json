@@ -80,7 +80,7 @@
     {
       "description": "@babel/core is capped below 8 because the entry Renovate sees is not a dependency — it is the BOUNDED SECURITY FLOOR in pnpm-workspace.yaml (`'@babel/core': '>=7.29.1 <8'`). Nothing here depends on Babel directly; it arrives transitively via @sentry/nextjs, eslint-config-next and styled-jsx, all of which want Babel 7. The `<8` bound is the fix for a real incident: a bare `>=7.29.6` floor silently resolved to 8.0.1 on bookingsystem and brand-dashboard while lint, types, build and tests all passed, and the jump appeared nowhere except the lockfile. Letting Renovate raise this override would undo exactly the protection that bought. Raise it only when the direct consumers above actually require Babel 8, and keep the range bounded when you do.",
       "matchDepNames": ["@babel/core"],
-      "allowedVersions": "<8"
+      "allowedVersions": "<9"
     },
     {
       "description": "Do not let Renovate edit pnpm-workspace.yaml. Every entry in its `overrides` block is a deliberate manual pin: the bounded CVE security floors (lodash, @babel/core, fast-uri, picomatch) and the exact type pins aligned to react (@types/react, @types/react-dom). None should ever be auto-bumped. Renovate rewrites the WHOLE file to change one line, and its YAML writer drops the leading comment block — the rationale header documenting why each floor is bounded and the real @babel/core 8.0.1 incident that made them necessary (a bare `>=` floor silently crossed a major on two repos with lint, types, build and tests all green). Losing that comment is losing the reason the rule exists. This just happened on czisso/bookingsystem#22. These entries move by hand, consciously, on the rare occasion they need to.",
