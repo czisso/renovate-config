@@ -14,28 +14,33 @@
   "description": [
     "baseBranches is `dev`, NOT the repo default. Every repo here defaults to `main`, and `main` auto-deploys to Vercel — without this, an automerged dependency bump would ship straight to production without ever passing through dev.",
     "No top-level `schedule`: the GitHub Actions workflow cron is the only scheduler. A second one here would silently no-op any manual workflow_dispatch run that fell outside the window.",
-    "Minor+patch land themselves once CI is green; majors wait for you to tick them on the Dependency Dashboard, so they never arrive as surprise PRs.",
+    "Minor+patch open and stay updated automatically once CI is green; majors wait for you to tick them on the Dependency Dashboard, so they never arrive as surprise PRs. As of 2026-08-29, none of this self-merges — see the automerge bullets below.",
     "minimumReleaseAge holds every update back for 3 days. This is a supply-chain guard: the highest-risk window for a compromised or yanked npm release is the first hours after publication, and nothing here is urgent enough to need a package the day it ships. It also keeps Renovate compatible with pnpm 11, which enforces its own 24h floor and rejects newer entries with ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION — including under --frozen-lockfile, so a too-fresh lockfile fails CI outright. 3 days sits comfortably clear of that 24h line. Security updates are exempt automatically.",
-    "platformAutomerge is deliberately FALSE. Handing the merge to GitHub sounds better — a PR merges the moment checks pass instead of waiting for the next Renovate run — but GitHub's auto-merge respects required reviews and will not bypass them for anyone. On autamoshub, whose dev branch requires an approving review that Renovate cannot give itself, that meant its dependency PRs queued forever and had to be merged by hand every cycle.",
-    "With this false, Renovate merges during its own run using RENOVATE_TOKEN instead. That token is czisso's classic PAT, czisso is a repo admin, and autamoshub's branch protection has enforce_admins:false — so the merge goes through while the review requirement stays in place for humans. Branch protection is left intact and meaningful rather than deleted to satisfy a bot.",
-    "IMPORTANT: GitHub's native auto-merge is also a PAID feature for private repos. It works on Autamos-LLC (Team plan) but NOT on the czisso personal repos or HENSOLDT-Marcom (Free) — the API accepts allow_auto_merge:true there and silently ignores it. So those three were already falling back to Renovate's own merge; this setting simply makes all four behave identically. The workflow cron is therefore the automerge latency everywhere, which is why it runs daily rather than twice weekly."
+    "platformAutomerge is FALSE, and as of 2026-08-29 every packageRule's automerge is FALSE too — Renovate never merges anything itself, by any mechanism. Its only job is to open dependency PRs and keep them updated. Merging into dev is solely the existing assess->verify->merge pipeline's responsibility, on its own separately-scoped credential, gated on CI green + a Verifier 'works' verdict + an Assessor verdict that isn't 'blocked'. autamoshub's required-review rule now applies uniformly to Renovate's own PRs like any other — nothing here asks anyone to bypass it.",
+    "RENOVATE_TOKEN is no longer czisso's personal PAT. Each owner (Autamos-LLC, czisso, HENSOLDT-Marcom) has its own dedicated GitHub App — sentry-renovate-autamoshub, sentry-renovate-czisso, sentry-renovate-hensoldt — installed only on that owner's repos listed above, holding only Contents/Pull-requests/Issues read-write and Checks read. No Administration, no Workflows, no branch-protection bypass. Each repo's renovate.yml mints a fresh ~1h installation token per run; nothing long-lived is stored.",
+    "github-actions manager is disabled (see the top-level github-actions key below): none of the three Renovate Apps hold the Workflows permission needed to push a change to .github/workflows/*.yml. This is a deferred, separately-reviewed capability, not a permanent removal — the old grouped-automerge rule for it is removed along with the automerge behaviour, not left disabled in place, so a future re-enable should design its permission and review needs fresh rather than resurrect this rule.",
+    "IMPORTANT: GitHub's native platform automerge is also a PAID feature for private repos and, regardless, would not have helped here even before this change — required reviews still apply. It stays FALSE everywhere for consistency; it is irrelevant to how merging actually happens now."
   ],
   "automergeStrategy": "squash",
   "platformAutomerge": false,
 
+  "github-actions": {
+    "enabled": false
+  },
+
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": ["* 0-5 1 * *"],
-    "automerge": true
+    "automerge": false
   },
 
   "packageRules": [
     {
-      "description": "Grouped minor+patch npm updates, automerged after CI passes.",
+      "description": "Grouped minor+patch npm updates. Opens/keeps updated automatically once CI is green; merging is the existing pipeline's job, not Renovate's (automerge intentionally false — see the description above).",
       "matchManagers": ["npm"],
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "groupName": "npm (minor & patch)",
-      "automerge": true
+      "automerge": false
     },
     {
       "description": "Majors never automerge and do not open a PR until approved on the Dependency Dashboard.",
@@ -45,18 +50,11 @@
       "labels": ["dependencies", "major"]
     },
     {
-      "description": "GitHub Actions, grouped and automerged.",
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["minor", "patch", "digest"],
-      "groupName": "github-actions",
-      "automerge": true
-    },
-    {
-      "description": "Dev container CLI pins (the ARG values in .devcontainer/Dockerfile), grouped and automerged. Merging one of these means the container image is stale until you rebuild — the postAttach check in devcontainer.json warns you.",
+      "description": "Dev container CLI pins (the ARG values in .devcontainer/Dockerfile), grouped. Merging one of these means the container image is stale until you rebuild — the postAttach check in devcontainer.json warns you. Merging itself is the existing pipeline's job (automerge false — see the description above).",
       "matchManagers": ["custom.regex"],
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "dev container CLIs",
-      "automerge": true
+      "automerge": false
     },
     {
       "description": "Playwright's npm packages and the Dockerfile ARG must move together — the browser builds are tied to the package version.",
@@ -96,7 +94,7 @@
       "description": "The Claude Code CLI self-updates at runtime, so the image pin is only a floor. Monthly, to avoid a PR every few days.",
       "matchPackageNames": ["@anthropic-ai/claude-code"],
       "schedule": ["* 0-5 1 * *"],
-      "automerge": true
+      "automerge": false
     }
   ],
 
