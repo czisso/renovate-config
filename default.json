@@ -11,16 +11,6 @@
   "postUpdateOptions": ["pnpmDedupe"],
   "minimumReleaseAge": "3 days",
 
-  "description": [
-    "baseBranches is `dev`, NOT the repo default. Every repo here defaults to `main`, and `main` auto-deploys to Vercel — without this, an automerged dependency bump would ship straight to production without ever passing through dev.",
-    "No top-level `schedule`: the GitHub Actions workflow cron is the only scheduler. A second one here would silently no-op any manual workflow_dispatch run that fell outside the window.",
-    "Minor+patch open and stay updated automatically once CI is green; majors wait for you to tick them on the Dependency Dashboard, so they never arrive as surprise PRs. As of 2026-08-29, none of this self-merges — see the automerge bullets below.",
-    "minimumReleaseAge holds every update back for 3 days. This is a supply-chain guard: the highest-risk window for a compromised or yanked npm release is the first hours after publication, and nothing here is urgent enough to need a package the day it ships. It also keeps Renovate compatible with pnpm 11, which enforces its own 24h floor and rejects newer entries with ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION — including under --frozen-lockfile, so a too-fresh lockfile fails CI outright. 3 days sits comfortably clear of that 24h line. Security updates are exempt automatically.",
-    "platformAutomerge is FALSE, and as of 2026-08-29 every packageRule's automerge is FALSE too — Renovate never merges anything itself, by any mechanism. Its only job is to open dependency PRs and keep them updated. Merging into dev is solely the existing assess->verify->merge pipeline's responsibility, on its own separately-scoped credential, gated on CI green + a Verifier 'works' verdict + an Assessor verdict that isn't 'blocked'. autamoshub's required-review rule now applies uniformly to Renovate's own PRs like any other — nothing here asks anyone to bypass it.",
-    "RENOVATE_TOKEN is no longer czisso's personal PAT. Each owner (Autamos-LLC, czisso, HENSOLDT-Marcom) has its own dedicated GitHub App — sentry-renovate-autamoshub, sentry-renovate-czisso, sentry-renovate-hensoldt — installed only on that owner's repos listed above, holding only Contents/Pull-requests/Issues read-write and Checks read. No Administration, no Workflows, no branch-protection bypass. Each repo's renovate.yml mints a fresh ~1h installation token per run; nothing long-lived is stored.",
-    "github-actions manager is disabled (see the top-level github-actions key below): none of the three Renovate Apps hold the Workflows permission needed to push a change to .github/workflows/*.yml. This is a deferred, separately-reviewed capability, not a permanent removal — the old grouped-automerge rule for it is removed along with the automerge behaviour, not left disabled in place, so a future re-enable should design its permission and review needs fresh rather than resurrect this rule.",
-    "IMPORTANT: GitHub's native platform automerge is also a PAID feature for private repos and, regardless, would not have helped here even before this change — required reviews still apply. It stays FALSE everywhere for consistency; it is irrelevant to how merging actually happens now."
-  ],
   "automergeStrategy": "squash",
   "platformAutomerge": false,
 
@@ -36,33 +26,28 @@
 
   "packageRules": [
     {
-      "description": "Grouped minor+patch npm updates. Opens/keeps updated automatically once CI is green; merging is the existing pipeline's job, not Renovate's (automerge intentionally false — see the description above).",
       "matchManagers": ["npm"],
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "groupName": "npm (minor & patch)",
       "automerge": false
     },
     {
-      "description": "Majors never automerge and do not open a PR until approved on the Dependency Dashboard.",
       "matchUpdateTypes": ["major"],
       "automerge": false,
       "dependencyDashboardApproval": true,
       "labels": ["dependencies", "major"]
     },
     {
-      "description": "Dev container CLI pins (the ARG values in .devcontainer/Dockerfile), grouped. Merging one of these means the container image is stale until you rebuild — the postAttach check in devcontainer.json warns you. Merging itself is the existing pipeline's job (automerge false — see the description above).",
       "matchManagers": ["custom.regex"],
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "dev container CLIs",
       "automerge": false
     },
     {
-      "description": "Playwright's npm packages and the Dockerfile ARG must move together — the browser builds are tied to the package version.",
       "matchPackageNames": ["playwright", "@playwright/test"],
       "groupName": "playwright"
     },
     {
-      "description": "Node is capped by Vercel's runtime, which offers only 24.x/22.x/20.x. Do not let Renovate move the base image or @types/node past it. Raise this (and NODE_MAJOR in ~/scripts/versions.env) only once `check-app-health.sh --upstream` reports Vercel supports the next major.",
       "matchPackageNames": [
         "@types/node",
         "mcr.microsoft.com/devcontainers/javascript-node",
@@ -71,27 +56,22 @@
       "allowedVersions": "<25"
     },
     {
-      "description": "TypeScript is capped below 7 because typescript-eslint cannot parse with it. TS 7 is the Go rewrite and ships no compiler API yet, so typescript-eslint (peer `>=4.8.4 <6.1.0` as of 8.67.0) is structurally incompatible — upstream closed both support requests as not_planned, tracking issue typescript-eslint#10940. Taking v7 does not break one rule, it breaks the parser for the whole lint config. The cap also makes Renovate offer TS 6.0.3 (stable since 2026-04-16, the last JS-based compiler, keeps the API and sits inside typescript-eslint's range) instead of skipping straight to 7 — TS 6 is the designated deprecation bridge to 7, so it is progress rather than a detour. Lift this only once typescript-eslint's peer range admits 7: check the range itself, not just whether a new TS release exists.",
       "matchDepNames": ["typescript"],
       "allowedVersions": "<7"
     },
     {
-      "description": "@babel/core is capped below 8 because the entry Renovate sees is not a dependency — it is the BOUNDED SECURITY FLOOR in pnpm-workspace.yaml (`'@babel/core': '>=7.29.1 <8'`). Nothing here depends on Babel directly; it arrives transitively via @sentry/nextjs, eslint-config-next and styled-jsx, all of which want Babel 7. The `<8` bound is the fix for a real incident: a bare `>=7.29.6` floor silently resolved to 8.0.1 on bookingsystem and brand-dashboard while lint, types, build and tests all passed, and the jump appeared nowhere except the lockfile. Letting Renovate raise this override would undo exactly the protection that bought. Raise it only when the direct consumers above actually require Babel 8, and keep the range bounded when you do.",
       "matchDepNames": ["@babel/core"],
       "allowedVersions": "<9"
     },
     {
-      "description": "Do not let Renovate edit pnpm-workspace.yaml. Every entry in its `overrides` block is a deliberate manual pin: the bounded CVE security floors (lodash, @babel/core, fast-uri, picomatch) and the exact type pins aligned to react (@types/react, @types/react-dom). None should ever be auto-bumped. Renovate rewrites the WHOLE file to change one line, and its YAML writer drops the leading comment block — the rationale header documenting why each floor is bounded and the real @babel/core 8.0.1 incident that made them necessary (a bare `>=` floor silently crossed a major on two repos with lint, types, build and tests all green). Losing that comment is losing the reason the rule exists. This just happened on czisso/bookingsystem#22. These entries move by hand, consciously, on the rare occasion they need to.",
       "matchFileNames": ["pnpm-workspace.yaml"],
       "enabled": false
     },
     {
-      "description": "The TypeScript 7 compiler, installed alongside TS 6 as `\"@typescript/native\": \"npm:typescript@^7.0.2\"`. It must be allowed to track 7.x. Note why the cap above uses matchDepNames and not matchPackageNames: an aliased dependency resolves to the package `typescript`, so a matchPackageNames rule would catch this entry too and silently pin the TS 7 compiler below 7 — freezing the very thing it is there to provide. matchDepNames matches the package.json key instead, so the cap applies only to the real `typescript` entry.",
       "matchDepNames": ["@typescript/native"],
       "allowedVersions": ">=7"
     },
     {
-      "description": "The Claude Code CLI self-updates at runtime, so the image pin is only a floor. Monthly, to avoid a PR every few days.",
       "matchPackageNames": ["@anthropic-ai/claude-code"],
       "schedule": ["* 0-5 1 * *"],
       "automerge": false
@@ -100,7 +80,6 @@
 
   "customManagers": [
     {
-      "description": "Supabase CLI pinned as an ARG in the dev container Dockerfile.",
       "customType": "regex",
       "managerFilePatterns": ["/^\\.devcontainer/Dockerfile$/"],
       "matchStrings": ["ARG SUPABASE_VERSION=(?<currentValue>\\S+)"],
@@ -109,7 +88,6 @@
       "extractVersionTemplate": "^v(?<version>.*)$"
     },
     {
-      "description": "Doppler CLI pinned as an ARG. Its release tags carry no `v` prefix.",
       "customType": "regex",
       "managerFilePatterns": ["/^\\.devcontainer/Dockerfile$/"],
       "matchStrings": ["ARG DOPPLER_VERSION=(?<currentValue>\\S+)"],
