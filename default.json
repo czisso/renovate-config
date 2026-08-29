@@ -1,77 +1,50 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": [
-    "config:recommended",
-    ":dependencyDashboard",
-    ":semanticCommitTypeAll(chore)"
-  ],
+  "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommitTypeAll(chore)"],
   "timezone": "Europe/London",
-  "labels": [
-    "dependencies"
-  ],
-  "baseBranches": [
-    "dev"
-  ],
+  "labels": ["dependencies"],
+
+  "baseBranches": ["dev"],
   "prConcurrentLimit": 5,
   "prHourlyLimit": 0,
   "rebaseWhen": "conflicted",
-  "postUpdateOptions": [
-    "pnpmDedupe"
-  ],
+  "postUpdateOptions": ["pnpmDedupe"],
   "minimumReleaseAge": "3 days",
+
   "automergeStrategy": "squash",
   "platformAutomerge": false,
+
   "github-actions": {
     "enabled": false
   },
+
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": [
-      "* 0-5 1 * *"
-    ],
+    "schedule": ["* 0-5 1 * *"],
     "automerge": false
   },
+
   "packageRules": [
     {
-      "matchManagers": [
-        "npm"
-      ],
-      "matchUpdateTypes": [
-        "minor",
-        "patch",
-        "pin",
-        "digest"
-      ],
+      "matchManagers": ["npm"],
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "groupName": "npm (minor & patch)",
       "automerge": false
     },
     {
-      "matchUpdateTypes": [
-        "major"
-      ],
+      "matchUpdateTypes": ["major"],
       "automerge": false,
       "dependencyDashboardApproval": true,
-      "labels": [
-        "dependencies",
-        "major"
-      ]
+      "labels": ["dependencies", "major"]
     },
     {
-      "matchManagers": [
-        "custom.regex"
-      ],
-      "matchUpdateTypes": [
-        "minor",
-        "patch"
-      ],
+      "matchManagers": ["custom.regex"],
+      "matchUpdateTypes": ["minor", "patch"],
       "groupName": "dev container CLIs",
       "automerge": false
     },
     {
-      "matchPackageNames": [
-        "playwright",
-        "@playwright/test"
-      ],
+      "matchPackageNames": ["playwright", "@playwright/test"],
       "groupName": "playwright"
     },
     {
@@ -83,93 +56,62 @@
       "allowedVersions": "<25"
     },
     {
-      "matchDepNames": [
-        "typescript"
-      ],
+      "matchDepNames": ["typescript"],
       "allowedVersions": "<7"
     },
     {
-      "matchDepNames": [
-        "@babel/core"
-      ],
+      "matchDepNames": ["@babel/core"],
       "allowedVersions": "<9"
     },
     {
-      "matchFileNames": [
-        "pnpm-workspace.yaml"
-      ],
+      "matchFileNames": ["pnpm-workspace.yaml"],
       "enabled": false
     },
     {
-      "matchDepNames": [
-        "@typescript/native"
-      ],
+      "matchDepNames": ["@typescript/native"],
       "allowedVersions": ">=7"
     },
     {
-      "matchPackageNames": [
-        "@anthropic-ai/claude-code"
-      ],
-      "schedule": [
-        "* 0-5 1 * *"
-      ],
+      "matchPackageNames": ["@anthropic-ai/claude-code"],
+      "schedule": ["* 0-5 1 * *"],
       "automerge": false
     }
   ],
+
   "customManagers": [
     {
       "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.devcontainer/Dockerfile$/"
-      ],
-      "matchStrings": [
-        "ARG SUPABASE_VERSION=(?<currentValue>\\S+)"
-      ],
+      "managerFilePatterns": ["/^\\.devcontainer/Dockerfile$/"],
+      "matchStrings": ["ARG SUPABASE_VERSION=(?<currentValue>\\S+)"],
       "depNameTemplate": "supabase/cli",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.*)$"
     },
     {
       "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.devcontainer/Dockerfile$/"
-      ],
-      "matchStrings": [
-        "ARG DOPPLER_VERSION=(?<currentValue>\\S+)"
-      ],
+      "managerFilePatterns": ["/^\\.devcontainer/Dockerfile$/"],
+      "matchStrings": ["ARG DOPPLER_VERSION=(?<currentValue>\\S+)"],
       "depNameTemplate": "DopplerHQ/cli",
       "datasourceTemplate": "github-releases"
     },
     {
       "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.devcontainer/Dockerfile$/"
-      ],
-      "matchStrings": [
-        "ARG PLAYWRIGHT_VERSION=(?<currentValue>\\S+)"
-      ],
+      "managerFilePatterns": ["/^\\.devcontainer/Dockerfile$/"],
+      "matchStrings": ["ARG PLAYWRIGHT_VERSION=(?<currentValue>\\S+)"],
       "depNameTemplate": "playwright",
       "datasourceTemplate": "npm"
     },
     {
       "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.devcontainer/Dockerfile$/"
-      ],
-      "matchStrings": [
-        "ARG GRAPHIFYY_VERSION=(?<currentValue>\\S+)"
-      ],
+      "managerFilePatterns": ["/^\\.devcontainer/Dockerfile$/"],
+      "matchStrings": ["ARG GRAPHIFYY_VERSION=(?<currentValue>\\S+)"],
       "depNameTemplate": "graphifyy",
       "datasourceTemplate": "pypi"
     },
     {
       "customType": "regex",
-      "managerFilePatterns": [
-        "/^\\.devcontainer/Dockerfile$/"
-      ],
-      "matchStrings": [
-        "ARG CLAUDE_CODE_VERSION=(?<currentValue>\\S+)"
-      ],
+      "managerFilePatterns": ["/^\\.devcontainer/Dockerfile$/"],
+      "matchStrings": ["ARG CLAUDE_CODE_VERSION=(?<currentValue>\\S+)"],
       "depNameTemplate": "@anthropic-ai/claude-code",
       "datasourceTemplate": "npm"
     }
