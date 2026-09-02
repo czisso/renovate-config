@@ -1,0 +1,37 @@
+# Destination: czisso/renovate-config -> .github/workflows/validate.yml
+#
+# Authored in czisso/apollo (automation/renovate/validate.yml) and copied out by
+# docs/renovate-rollout-runbook.md. Apollo build step 0.7.
+#
+# One job, named `validate`, so branch protection on czisso/renovate-config has a single
+# required context to point at. Actions are pinned to a commit sha, not a tag: a tag is a
+# moving pointer someone else controls.
+#
+# Renovate itself is pinned too (CLAUDE.md rule 8). An unpinned `npx renovate` resolves to
+# whatever is cached or current, and a cached older validator falsely rejects fields that
+# exist now - `managerFilePatterns` is the one that has already caught someone out here.
+name: validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Renovate 44 needs Node >= 22; the runner's default is not guaranteed to be one.
+      - name: Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+
+      - name: renovate-config-validator
+        run: npx --yes --package renovate@44.59.2 renovate-config-validator --strict default.json

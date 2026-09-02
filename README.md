@@ -38,11 +38,13 @@ Renovate's own documented approach — see
 - The file **must** be named `default.json` at the repo root. That is the name
   `local>czisso/renovate-config` resolves to; a differently-named file is only
   reachable as `local>czisso/renovate-config:name`.
-- This repo may stay **private**. Renovate reads presets through the platform
-  API using `RENOVATE_TOKEN`, not through Actions' access control, and that
-  token is a classic PAT with `repo` scope covering all three owners. (Actions'
-  own rule — that private reusable *workflows* cannot cross an org boundary
-  without an Enterprise account — does not apply to presets.)
+- This repo **must stay public**. Renovate does not read presets with a
+  cross-owner PAT: there is no `RENOVATE_TOKEN` on any of the four consumers,
+  and none on this repo either. Renovate authenticates as a GitHub App whose
+  installation token is scoped to the single repository it is running against,
+  so it reaches this repo only as an anonymous reader. Public is what makes
+  that read succeed. Making this repo private would break Renovate on
+  `autamoshub` (Autamos-LLC) and `brand-dashboard` (HENSOLDT-Marcom).
 - `local>` is preferred over `github>`: it resolves via the configured platform
   rather than hardcoding github.com.
 - Validate changes before pushing:
