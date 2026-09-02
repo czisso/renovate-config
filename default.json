@@ -1,18 +1,49 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended", ":dependencyDashboard", ":semanticCommitTypeAll(chore)"],
-  "timezone": "Europe/London",
-  "labels": ["dependencies"],
+  "description": [
+    "The single Renovate policy shared by bookingsystem, autamoshub, jkplumbing and brand-dashboard.",
+    "Authored in czisso/apollo at automation/renovate/default.json and copied verbatim to",
+    "czisso/renovate-config/default.json. Change it here first; docs/renovate-rollout-runbook.md",
+    "is the procedure. Apollo build step 0.7.",
+    "The monthly schedule is written as the cron `* 0-5 1-7 * 1` - first Monday of the month,",
+    "00:00-05:59. Renovate's parser rejects the English form `before 6am on the first monday of",
+    "the month`, which is what HANDOFF section 11 asked for.",
+    "`baseBranchPatterns` is the current name of what the preset this replaces called",
+    "`baseBranches`. Renovate migrates the old spelling; writing the new one avoids the warning."
+  ],
 
-  "baseBranches": ["dev"],
-  "prConcurrentLimit": 5,
-  "prHourlyLimit": 0,
+  "extends": [
+    "config:best-practices",
+    "group:allNonMajor",
+    ":semanticCommitTypeAll(chore)"
+  ],
+
+  "timezone": "Europe/London",
+  "schedule": ["before 6am on monday"],
+  "updateNotScheduled": false,
   "rebaseWhen": "conflicted",
-  "postUpdateOptions": ["pnpmDedupe"],
   "minimumReleaseAge": "3 days",
+  "statusCheckWhen": {
+    "minimumReleaseAge": "never"
+  },
+
+  "baseBranchPatterns": ["dev"],
+  "labels": ["dependencies"],
+  "prConcurrentLimit": 5,
+  "branchConcurrentLimit": 5,
+  "prHourlyLimit": 0,
+  "postUpdateOptions": ["pnpmDedupe"],
+  "dependencyDashboard": true,
 
   "automergeStrategy": "squash",
-  "platformAutomerge": false,
+  "platformAutomerge": true,
+
+  "osvVulnerabilityAlerts": true,
+  "vulnerabilityAlerts": {
+    "labels": ["security"],
+    "schedule": ["at any time"],
+    "minimumReleaseAge": null
+  },
 
   "github-actions": {
     "enabled": false
@@ -20,34 +51,62 @@
 
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["* 0-5 1 * *"],
+    "schedule": ["* 0-5 1-7 * 1"],
     "automerge": false
   },
 
   "packageRules": [
     {
-      "matchManagers": ["npm"],
+      "description": "One grouped PR per week for everything routine. automerge stays false until branch protection exists (apollo build step 2.7).",
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
-      "groupName": "npm (minor & patch)",
+      "groupName": "all non-major dependencies",
       "automerge": false
+    },
+    {
+      "description": "A major never opens a PR until it is ticked in the Dependency Dashboard. That tick is Go.",
+      "matchUpdateTypes": ["major"],
+      "dependencyDashboardApproval": true,
+      "automerge": false,
+      "labels": ["dependencies", "major", "needs-go"]
+    },
+    {
+      "description": "Framework majors are their own group so the assessment is per framework.",
+      "matchUpdateTypes": ["major"],
+      "groupName": "Next.js",
+      "matchPackageNames": ["next", "eslint-config-next", "@next/**"]
     },
     {
       "matchUpdateTypes": ["major"],
-      "automerge": false,
-      "dependencyDashboardApproval": true,
-      "labels": ["dependencies", "major"]
+      "groupName": "React",
+      "matchPackageNames": ["react", "react-dom", "@types/react", "@types/react-dom"]
     },
     {
-      "matchManagers": ["custom.regex"],
-      "matchUpdateTypes": ["minor", "patch"],
-      "groupName": "dev container CLIs",
+      "description": "Dev container definition: image tag and features. Monthly, never automerged - CLAUDE.md rule 7 keeps a human on every .devcontainer/ merge.",
+      "matchManagers": ["devcontainer"],
+      "groupName": "Dev container",
+      "pinDigests": false,
+      "schedule": ["* 0-5 1-7 * 1"],
       "automerge": false
     },
     {
-      "matchPackageNames": ["playwright", "@playwright/test"],
-      "groupName": "playwright"
+      "description": "The dev container base image travels with the features, under the same rule 7 restriction.",
+      "matchManagers": ["dockerfile"],
+      "matchFileNames": [".devcontainer/**"],
+      "groupName": "Dev container",
+      "pinDigests": false,
+      "schedule": ["* 0-5 1-7 * 1"],
+      "automerge": false
     },
     {
+      "description": "The CLI versions pinned as ARGs in .devcontainer/Dockerfile. Same group cadence, same rule 7 restriction.",
+      "matchManagers": ["custom.regex"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "dev container CLIs",
+      "schedule": ["* 0-5 1-7 * 1"],
+      "automerge": false
+    },
+    {
+      "description": "Version ceilings carried over from the preset this file replaces. Node 25 is ahead of the apps' .nvmrc and of the apollo fixer images.",
       "matchPackageNames": [
         "@types/node",
         "mcr.microsoft.com/devcontainers/javascript-node",
@@ -64,16 +123,20 @@
       "allowedVersions": "<9"
     },
     {
-      "matchFileNames": ["pnpm-workspace.yaml"],
-      "enabled": false
-    },
-    {
       "matchDepNames": ["@typescript/native"],
       "allowedVersions": ">=7"
     },
     {
+      "matchFileNames": ["pnpm-workspace.yaml"],
+      "enabled": false
+    },
+    {
+      "matchPackageNames": ["playwright", "@playwright/test"],
+      "groupName": "playwright"
+    },
+    {
       "matchPackageNames": ["@anthropic-ai/claude-code"],
-      "schedule": ["* 0-5 1 * *"],
+      "schedule": ["* 0-5 1-7 * 1"],
       "automerge": false
     }
   ],
