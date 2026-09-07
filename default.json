@@ -5,9 +5,13 @@
     "Authored in czisso/apollo at automation/renovate/default.json and copied verbatim to",
     "czisso/renovate-config/default.json. Change it here first; docs/renovate-rollout-runbook.md",
     "is the procedure. Apollo build step 0.7.",
-    "The monthly schedule is written as the cron `* 0-5 1-7 * 1` - first Monday of the month,",
-    "00:00-05:59. Renovate's parser rejects the English form `before 6am on the first monday of",
-    "the month`, which is what HANDOFF section 11 asked for.",
+    "Every window names a day and never an hour: the weekly window is the cron `* * * * 1` (any",
+    "time on Monday) and the monthly one `* * 1-7 * 1` (any time on the first Monday; Renovate",
+    "ANDs the two day fields - `domAndDow` in its schedule.ts). The window picks which daily run",
+    "acts, it does not bound the hour: GitHub fires the apps' `0 3 * * *` cron 39 min to 12 h 09",
+    "late (measured 2026-08-25 to 09-07), and `before 6am on monday` gave a green run and no PR on",
+    "2026-09-07. Renovate's parser rejects the English ordinal form `before 6am on the first",
+    "monday of the month`, which is what HANDOFF section 11 asked for.",
     "`baseBranchPatterns` is the current name of what the preset this replaces called",
     "`baseBranches`. Renovate migrates the old spelling; writing the new one avoids the warning."
   ],
@@ -19,7 +23,7 @@
   ],
 
   "timezone": "Europe/London",
-  "schedule": ["before 6am on monday"],
+  "schedule": ["* * * * 1"],
   "updateNotScheduled": false,
   "rebaseWhen": "conflicted",
   "minimumReleaseAge": "3 days",
@@ -51,7 +55,7 @@
 
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": ["* 0-5 1-7 * 1"],
+    "schedule": ["* * 1-7 * 1"],
     "automerge": false
   },
 
@@ -85,7 +89,7 @@
       "matchManagers": ["devcontainer"],
       "groupName": "Dev container",
       "pinDigests": false,
-      "schedule": ["* 0-5 1-7 * 1"],
+      "schedule": ["* * 1-7 * 1"],
       "automerge": false
     },
     {
@@ -94,7 +98,7 @@
       "matchFileNames": [".devcontainer/**"],
       "groupName": "Dev container",
       "pinDigests": false,
-      "schedule": ["* 0-5 1-7 * 1"],
+      "schedule": ["* * 1-7 * 1"],
       "automerge": false
     },
     {
@@ -102,7 +106,7 @@
       "matchManagers": ["custom.regex"],
       "matchUpdateTypes": ["minor", "patch"],
       "groupName": "dev container CLIs",
-      "schedule": ["* 0-5 1-7 * 1"],
+      "schedule": ["* * 1-7 * 1"],
       "automerge": false
     },
     {
@@ -136,7 +140,7 @@
     },
     {
       "matchPackageNames": ["@anthropic-ai/claude-code"],
-      "schedule": ["* 0-5 1-7 * 1"],
+      "schedule": ["* * 1-7 * 1"],
       "automerge": false
     }
   ],
