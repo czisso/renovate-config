@@ -61,10 +61,10 @@
 
   "packageRules": [
     {
-      "description": "One grouped PR per week for everything routine. automerge stays false until branch protection exists (apollo build step 2.7).",
+      "description": "One grouped PR per week for everything routine. automerge on since 2026-10-23: branch protection has existed since apollo 2.7 (rulesets on dev and main, ci required, dev at 0 reviews), so a green grouped PR merges into dev by itself; it reaches production only when an Apollo card promotes dev, with a human approval on that release. Security PRs (vulnerabilityAlerts) are minor/patch and match this rule too.",
       "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
       "groupName": "all non-major dependencies",
-      "automerge": false
+      "automerge": true
     },
     {
       "description": "A major never opens a PR until it is ticked in the Dependency Dashboard. That tick is Go.",
